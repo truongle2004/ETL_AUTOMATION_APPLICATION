@@ -11,12 +11,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import pyqtSignal, Qt
 
-from widgets.buttons.radio_button import RadioButtonGroup
-from widgets.buttons.push_button import PushButtonGroup
-from widgets.tables.table_text_tab import TableTextTabWidget
-from widgets.inputs.input_control_group import InputControlsGroup
-from widgets.progess_bar.animated_progess_bar import AnimatedProgressBar
-from widgets.styles.style_control import StyleControls
+from views.html_structure_view import HtmlStructureView
 
 
 class ResponsiveDrawer(QFrame):
@@ -175,20 +170,22 @@ class SplitterBasedGallery(QMainWindow):
         content_layout = QGridLayout(self.content_panel)
 
         # Create components
-        self.styleControls = StyleControls()
-        self.radioButtonGroup = RadioButtonGroup("Group 1")
-        self.pushButtonGroup = PushButtonGroup("Group 2")
-        self.tabWidget = TableTextTabWidget()
-        self.inputControlsGroup = InputControlsGroup("Group 3")
-        self.progressBar = AnimatedProgressBar()
+        # self.styleControls = StyleControls()
+        # self.radioButtonGroup = RadioButtonGroup("Group 1")
+        # self.pushButtonGroup = PushButtonGroup("Group 2")
+        # self.tabWidget = TableTextTabWidget()
+        # self.inputControlsGroup = InputControlsGroup("Group 3")
+        # self.progressBar = AnimatedProgressBar()
+        self.htmlStructureView = HtmlStructureView()
 
         # Add to layout
-        content_layout.addWidget(self.styleControls, 0, 0, 1, 2)
-        content_layout.addWidget(self.radioButtonGroup, 1, 0)
-        content_layout.addWidget(self.pushButtonGroup, 1, 1)
-        content_layout.addWidget(self.tabWidget, 2, 0)
-        content_layout.addWidget(self.inputControlsGroup, 2, 1)
-        content_layout.addWidget(self.progressBar, 3, 0, 1, 2)
+        # content_layout.addWidget(self.styleControls, 0, 0, 1, 2)
+        # content_layout.addWidget(self.radioButtonGroup, 1, 0)
+        # content_layout.addWidget(self.pushButtonGroup, 1, 1)
+        # content_layout.addWidget(self.tabWidget, 2, 0)
+        # content_layout.addWidget(self.inputControlsGroup, 2, 1)
+        # content_layout.addWidget(self.progressBar, 3, 0, 1, 2)
+        content_layout.addWidget(self.htmlStructureView, 1, 0)
 
         content_layout.setRowStretch(1, 1)
         content_layout.setRowStretch(2, 1)
@@ -215,16 +212,10 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
 
-    # Choose which implementation to use:
-
-    # Option 1: Responsive drawer with hide/show
-    # gallery = ModularWidgetGallery()
-
-    # Option 2: Splitter-based (uncomment to use instead)
     gallery = SplitterBasedGallery()
 
     # Set window size and show (don't use showMaximized initially to see buttons clearly)
     gallery.resize(1000, 700)
-    gallery.showMaximized()
+    gallery.show()
 
     sys.exit(app.exec())
