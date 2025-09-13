@@ -1,20 +1,29 @@
 import re
 from PyQt6.QtGui import QFont
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
-                             QSizePolicy, QPushButton, QCheckBox)
+from PyQt6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QTextEdit,
+    QSizePolicy,
+    QPushButton,
+    QCheckBox,
+)
+
+from interface_adapter.controller.controller import Controller
 
 
 class TableTextWidget(QWidget):
     """Reusable widget with text edit that auto-doubles curly brackets on typing/pasting"""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, controller: Controller = None):
         super().__init__(parent)
+        self.controller = controller
         self.setupUI()
 
     def setupUI(self):
         # Size policy for the widget
-        self.setSizePolicy(QSizePolicy.Policy.Expanding,
-                           QSizePolicy.Policy.Expanding)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         # Buttons with tooltips
         self.btn_clear = QPushButton("Clear")
@@ -27,15 +36,13 @@ class TableTextWidget(QWidget):
 
         # Fix braces button (manual doubling of single braces)
         self.btn_fix_braces = QPushButton("Fix Braces")
-        self.btn_fix_braces.setToolTip(
-            "Double all single curly brackets { } to {{ }}")
+        self.btn_fix_braces.setToolTip("Double all single curly brackets { } to {{ }}")
         self.btn_fix_braces.clicked.connect(self.double_curly_brackets)
 
         # Auto-double checkbox
         self.chk_auto_double = QCheckBox("Auto-double { } as you type")
         self.chk_auto_double.setChecked(True)  # Enabled by default
-        self.chk_auto_double.setToolTip(
-            "Toggle automatic doubling of curly brackets")
+        self.chk_auto_double.setToolTip("Toggle automatic doubling of curly brackets")
 
         # Text edit setup (custom subclass for auto-doubling)
         self.textEdit = CustomTextEdit(self)
@@ -48,14 +55,39 @@ class TableTextWidget(QWidget):
             "How I wonder what you are!\n"
         )
         self.textEdit.setPlaceholderText("Enter or paste text here...")
-        self.textEdit.setFont(QFont("Arial", 12))  # Clean, readable font
-        self.textEdit.setLineWrapMode(
-            QTextEdit.LineWrapMode.WidgetWidth)  # Word wrap
+        self.textEdit.setFont(QFont("Arial", 8))
+        self.textEdit.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)  # Word wrap
         self.textEdit.setAcceptRichText(False)  # Plain text only
         self.textEdit.textChanged.connect(self.update_button_states)
         self.textEdit.set_auto_double_checkbox(self.chk_auto_double)
-
         self.textEdit.setTabStopDistance(40)  # Set tab width to 40 pixels
+
+        # OPTION 1: Add stylesheet for visible border and background
+        self.textEdit.setStyleSheet("""
+            QTextEdit {
+                border: 2px solid #cccccc;
+                border-radius: 5px;
+                background-color: #fafafa;
+                padding: 8px;
+            }
+            QTextEdit:focus {
+                border: 2px solid #4CAF50;
+                background-color: white;
+            }
+        """)
+
+        # OPTION 2: Wrap text edit in a group box (uncomment to use instead)
+        # self.text_group = QGroupBox("Table Text Editor")
+        # text_group_layout = QVBoxLayout(self.text_group)
+        # text_group_layout.addWidget(self.textEdit)
+
+        # OPTION 3: Wrap text edit in a frame with border (uncomment to use instead)
+        # self.text_frame = QFrame()
+        # self.text_frame.setFrameStyle(QFrame.Shape.Box | QFrame.Shadow.Raised)
+        # self.text_frame.setLineWidth(2)
+        # frame_layout = QVBoxLayout(self.text_frame)
+        # frame_layout.setContentsMargins(5, 5, 5, 5)
+        # frame_layout.addWidget(self.textEdit)
 
         # Button layout (horizontal)
         button_layout = QHBoxLayout()
@@ -70,7 +102,16 @@ class TableTextWidget(QWidget):
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(8)
         main_layout.addLayout(button_layout)
+
+        # Add the text edit directly (Option 1)
         main_layout.addWidget(self.textEdit)
+
+        # OR use group box (Option 2 - uncomment and comment line above)
+        # main_layout.addWidget(self.text_group)
+
+        # OR use frame (Option 3 - uncomment and comment text edit line above)
+        # main_layout.addWidget(self.text_frame)
+
         main_layout.addStretch()
 
         # Initial button state
@@ -94,8 +135,7 @@ class TableTextWidget(QWidget):
         # Enable fix button if single braces exist
         text = self.textEdit.toPlainText()
         # Match { or } not preceded/followed by another
-        has_single_braces = bool(
-            re.search(r'(?<!\{)\{(?!\{)|(?<!\})\}(?!\})', text))
+        has_single_braces = bool(re.search(r"(?<!\{)\{(?!\{)|(?<!\})\}(?!\})", text))
         self.btn_fix_braces.setEnabled(has_text and has_single_braces)
 
     def double_curly_brackets(self):
@@ -105,7 +145,8 @@ class TableTextWidget(QWidget):
 
         # Double single { to {{ and } to }}, avoiding existing doubles
         cleaned_text = re.sub(
-            r'(?<!\{)\{(?!\{)', '{{', re.sub(r'(?<!\})\}(?!\})', '}}', text))
+            r"(?<!\{)\{(?!\{)", "{{", re.sub(r"(?<!\})\}(?!\})", "}}", text)
+        )
 
         # print(f"Manual fix - Doubled text: {cleaned_text}")
 
@@ -132,12 +173,12 @@ class CustomTextEdit(QTextEdit):
 
         char = event.text()
         # print(f"char {char}")
-        if char == '{':
+        if char == "{":
             cursor = self.textCursor()
             pos = cursor.position()
 
             # Insert double braces instead of single
-            double_char = '{}'
+            double_char = "{}"
             cursor.insertText(double_char)
 
             # Move cursor between the braces (e.g., {{|}})
@@ -154,6 +195,7 @@ class CustomTextEdit(QTextEdit):
             super().insertFromMimeData(source)
             return
 
+
         pasted_text = source.text().strip()
         if not pasted_text:
             super().insertFromMimeData(source)
@@ -161,10 +203,15 @@ class CustomTextEdit(QTextEdit):
 
         # Double single braces in pasted text
         cleaned_paste = re.sub(
-            r'(?<!\{)\{(?!\{)', '{{', re.sub(r'(?<!\})\}(?!\})', '}}', pasted_text))
+            r"(?<!\{)\{(?!\{)", "{{", re.sub(r"(?<!\})\}(?!\})", "}}", pasted_text)
+        )
         # print(f"Auto-doubled pasted text: {pasted_text} -> {cleaned_paste}")
 
         # Insert cleaned text
         cursor = self.textCursor()
         cursor.insertText(cleaned_paste)
         self.setTextCursor(cursor)
+
+    def pretty_html_struct(self):
+        # TODO: need to add button pretty html and handle it
+        pass

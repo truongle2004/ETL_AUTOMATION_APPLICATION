@@ -8,10 +8,23 @@ from PyQt6.QtWidgets import (
     QFrame,
     QSplitter,
     QMainWindow,
+    QSizePolicy,
+    QLabel,
 )
 from PyQt6.QtCore import pyqtSignal, Qt
+import sys
+import threading
 
-from views.html_structure_view import HtmlStructureView
+from widgets.inputs.input_control import SingleInputControl as InputControl
+from widgets.buttons.button import Button
+from widgets.tables.table_text import TableTextWidget
+from widgets.dropdown.dropdown import Dropdown
+from usecases.impl.fetch_url_use_case_impl import FetchUrlUseCaseImpl as fuUseCase
+from usecases.impl.convert_into_beautifulsoup_use_case_impl import (
+    ConvertIntoBeautifulSoupUseCaseImpl as cibsuUseCase,
+)
+from usecases.impl.get_one_tag_use_case_impl import GetOneTagUseCaseImpl as gotuUseCase
+from interface_adapter.controller.controller import Controller
 
 
 class ResponsiveDrawer(QFrame):
@@ -44,9 +57,6 @@ class ResponsiveDrawer(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(10)
-
-        # Title
-        from PyQt6.QtWidgets import QLabel
 
         title = QLabel("Navigation")
         title.setStyleSheet("font-size: 16px; font-weight: bold; color: #495057;")
@@ -85,8 +95,11 @@ class ResponsiveDrawer(QFrame):
 class SplitterBasedGallery(QMainWindow):
     """Alternative implementation using QSplitter for smooth resizing"""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, controller: Controller = None):
         super().__init__(parent)
+
+        self.controller = controller
+
         self.setupUI()
         self.connectSignals()
         self.setWindowTitle("Splitter-Based Responsive Gallery")
@@ -115,6 +128,7 @@ class SplitterBasedGallery(QMainWindow):
             }
         """)
         self.setupDrawerPanel()
+        self.drawer_panel.hide()
 
         # Main content panel
         self.content_panel = QWidget()
@@ -153,8 +167,6 @@ class SplitterBasedGallery(QMainWindow):
         """Setup drawer panel content"""
         layout = QVBoxLayout(self.drawer_panel)
 
-        from PyQt6.QtWidgets import QLabel
-
         title = QLabel("Navigation")
         title.setStyleSheet("font-size: 16px; font-weight: bold; padding: 10px;")
         layout.addWidget(title)
@@ -169,28 +181,54 @@ class SplitterBasedGallery(QMainWindow):
         """Setup main content panel"""
         content_layout = QGridLayout(self.content_panel)
 
+        self.table_text = TableTextWidget(controller=self.controller)
+
         # Create components
-        # self.styleControls = StyleControls()
-        # self.radioButtonGroup = RadioButtonGroup("Group 1")
-        # self.pushButtonGroup = PushButtonGroup("Group 2")
-        # self.tabWidget = TableTextTabWidget()
-        # self.inputControlsGroup = InputControlsGroup("Group 3")
-        # self.progressBar = AnimatedProgressBar()
-        self.htmlStructureView = HtmlStructureView()
+        self.dropdown = Dropdown(
+            items=["Option 1", "Option 2", "Option 3"], placeholder="Choose..."
+        )
 
-        # Add to layout
-        # content_layout.addWidget(self.styleControls, 0, 0, 1, 2)
-        # content_layout.addWidget(self.radioButtonGroup, 1, 0)
-        # content_layout.addWidget(self.pushButtonGroup, 1, 1)
-        # content_layout.addWidget(self.tabWidget, 2, 0)
-        # content_layout.addWidget(self.inputControlsGroup, 2, 1)
-        # content_layout.addWidget(self.progressBar, 3, 0, 1, 2)
-        content_layout.addWidget(self.htmlStructureView, 1, 0)
+        self.singleInputControl = InputControl(
+            label_text="Enter Url here:",
+            is_password=False,
+        )
 
-        content_layout.setRowStretch(1, 1)
-        content_layout.setRowStretch(2, 1)
-        content_layout.setColumnStretch(0, 1)
-        content_layout.setColumnStretch(1, 1)
+        self.button_submit = Button("Submit", theme="primary")
+        # TODO: add detach enter button keymap
+        self.button_submit.setFixedSize(100, 30)
+
+        self.button_submit.clicked.connect(self.on_submit_clicked)
+
+        self.singleInputControl.setSizePolicy(
+            self.singleInputControl.sizePolicy().horizontalPolicy(),
+            QSizePolicy.Policy.Fixed,
+        )
+
+        # Now add widgets in proper rows
+        content_layout.addWidget(
+            self.singleInputControl, 0, 0, alignment=Qt.AlignmentFlag.AlignTop
+        )
+        content_layout.addWidget(
+            self.button_submit, 1, 0, alignment=Qt.AlignmentFlag.AlignTop
+        )
+        content_layout.addWidget(
+            self.dropdown, 2, 0, alignment=Qt.AlignmentFlag.AlignTop
+        )
+        content_layout.addWidget(
+            self.table_text, 3, 0, alignment=Qt.AlignmentFlag.AlignTop
+        )
+        content_layout.setRowStretch(5, 1)
+
+    def dropdown_changed(self):
+        """this dropdown will handle widget change"""
+        # TODO
+        pass
+
+    def on_submit_clicked(self):
+        url = self.singleInputControl.get_text()
+
+        thread = threading.Thread(target=self.controller.fetch_url, args=(url,))
+        thread.start()
 
     def connectSignals(self):
         """Connect signals"""
@@ -205,16 +243,24 @@ class SplitterBasedGallery(QMainWindow):
             self.drawer_panel.show()
             self.toggle_btn.setText("Hide Menu")
 
+    def action_add_new_table_text(self):
+        """Add new table text"""
+        # TODO
+        pass
 
-# Example usage
+
 if __name__ == "__main__":
-    import sys
+    fetch_url_use_case = fuUseCase()
+    convert_into_beautifulsoup_use_case = cibsuUseCase()
+    get_one_tag_use_case = gotuUseCase()
 
+    controller = Controller(
+        fetch_url_use_case=fetch_url_use_case,
+        convert_into_beautifulsoup_use_case=convert_into_beautifulsoup_use_case,
+        get_one_tag_use_case=get_one_tag_use_case,
+    )
     app = QApplication(sys.argv)
-
-    gallery = SplitterBasedGallery()
-
-    # Set window size and show (don't use showMaximized initially to see buttons clearly)
+    gallery = SplitterBasedGallery(controller=controller)
     gallery.resize(1000, 700)
     gallery.show()
 
